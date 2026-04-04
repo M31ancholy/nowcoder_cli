@@ -2,11 +2,14 @@ package nowcoder
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 )
 
@@ -15,13 +18,80 @@ type Interview struct {
 	Content string
 }
 
+type BrowserCookie struct {
+	Domain         string  `json:"domain"`
+	ExpirationDate float64 `json:"expirationDate"`
+	HostOnly       bool    `json:"hostOnly"`
+	HTTPOnly       bool    `json:"httpOnly"`
+	Name           string  `json:"name"`
+	Path           string  `json:"path"`
+	SameSite       string  `json:"sameSite"`
+	Secure         bool    `json:"secure"`
+	Session        bool    `json:"session"`
+	StoreId        string  `json:"storeId"`
+	Value          string  `json:"value"`
+}
+
 type Service struct {
 	allocCtx context.Context
 	cancel   context.CancelFunc
+	cookies  []BrowserCookie
 }
 
 func NewService() *Service {
 	return &Service{}
+}
+
+func (s *Service) LoadCookies(filename string) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("读取文件失败: %w", err)
+	}
+
+	if err := json.Unmarshal(data, &s.cookies); err != nil {
+		return fmt.Errorf("解析 JSON 失败: %w", err)
+	}
+
+	return nil
+}
+
+func convertSameSite(sameSite string) network.CookieSameSite {
+	switch sameSite {
+	case "no_restriction":
+		return network.CookieSameSiteNone
+	case "lax":
+		return network.CookieSameSiteLax
+	case "strict":
+		return network.CookieSameSiteStrict
+	default:
+		return ""
+	}
+}
+
+func (s *Service) setCookies() chromedp.ActionFunc {
+	return func(ctx context.Context) error {
+		for _, c := range s.cookies {
+			cookieCmd := network.SetCookie(c.Name, c.Value).
+				WithDomain(c.Domain).
+				WithPath(c.Path).
+				WithHTTPOnly(c.HTTPOnly).
+				WithSecure(c.Secure)
+
+			if ss := convertSameSite(c.SameSite); ss != "" {
+				cookieCmd = cookieCmd.WithSameSite(ss)
+			}
+
+			if !c.Session && c.ExpirationDate > 0 {
+				expr := cdp.TimeSinceEpoch(time.Unix(int64(c.ExpirationDate), 0))
+				cookieCmd = cookieCmd.WithExpires(&expr)
+			}
+
+			if err := cookieCmd.Do(ctx); err != nil {
+				return fmt.Errorf("设置 Cookie %q 失败: %w", c.Name, err)
+			}
+		}
+		return nil
+	}
 }
 
 func (s *Service) Start() error {
@@ -93,6 +163,20 @@ func (s *Service) openNowcoder(ctx context.Context) error {
 	); err != nil {
 		return fmt.Errorf("open nowcoder failed: %w", err)
 	}
+
+	if len(s.cookies) > 0 {
+		if err := chromedp.Run(ctx, s.setCookies()); err != nil {
+			return fmt.Errorf("set cookies failed: %w", err)
+		}
+
+		if err := chromedp.Run(ctx,
+			chromedp.Reload(),
+			chromedp.Sleep(2*time.Second),
+		); err != nil {
+			return fmt.Errorf("reload page failed: %w", err)
+		}
+	}
+
 	return nil
 }
 
