@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"time"
 
 	"github.com/chromedp/chromedp"
@@ -11,7 +12,7 @@ import (
 
 type Interview struct{}
 
-func GetInterviews() ([]Interview, error) {
+func GetInterviews(company, position string) ([]Interview, error) {
 	cookies, err := loadCookiesFromFile("./cmd/tmp/nowcoder_cookie.json")
 	if err != nil {
 		log.Fatal(err)
@@ -30,12 +31,13 @@ func GetInterviews() ([]Interview, error) {
 	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	searchURL := fmt.Sprintf("https://www.nowcoder.com/search/all?query=%s %s&type=all&searchType=顶部导航栏", url.QueryEscape(company), url.QueryEscape(position+"面经"))
+
 	var title string
 
 	err = chromedp.Run(ctx,
 		setCookies(cookies),
-		// 导航到面经搜索之后的界面
-		chromedp.Navigate("https://www.nowcoder.com/search/all?query=面经&type=all&searchType=顶部导航栏"),
+		chromedp.Navigate(searchURL),
 		chromedp.WaitReady("body"),
 		chromedp.Reload(),
 		chromedp.WaitReady("body"),
