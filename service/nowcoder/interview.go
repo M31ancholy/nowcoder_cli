@@ -12,7 +12,7 @@ import (
 
 type Interview struct{}
 
-func GetInterviews(company, position string) ([]Interview, error) {
+func GetInterviews(company, position string, limit int) ([]Interview, error) {
 	cookies, err := loadCookiesFromFile("./cmd/tmp/nowcoder_cookie.json")
 	if err != nil {
 		log.Fatal(err)

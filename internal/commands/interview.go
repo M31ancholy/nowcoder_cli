@@ -1,8 +1,10 @@
 package commands
 
 import (
-	"github.com/spf13/cobra"
 	"nowcoder_cli/service/nowcoder"
+	"strconv"
+
+	"github.com/spf13/cobra"
 )
 
 var interviewCmd = &cobra.Command{
@@ -11,7 +13,9 @@ var interviewCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		company, _ := cmd.Flags().GetString("company")
 		position, _ := cmd.Flags().GetString("position")
-		nowcoder.GetInterviews(company, position)
+		limit, _ := cmd.Flags().GetString("limit")
+		limitInt, _ := strconv.Atoi(limit)
+		nowcoder.GetInterviews(company, position, limitInt)
 	},
 }
 
