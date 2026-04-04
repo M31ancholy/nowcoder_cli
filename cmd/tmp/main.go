@@ -84,7 +84,7 @@ func setCookies(cookies []BrowserCookie) chromedp.ActionFunc {
 }
 
 func main() {
-	cookies, err := loadCookiesFromFile("nowcoder_cookie.json")
+	cookies, err := loadCookiesFromFile("./cmd/tmp/nowcoder_cookie.json")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -118,6 +118,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	time.Sleep(5 * time.Second)
 	fmt.Println("页面标题:", title)
 }
