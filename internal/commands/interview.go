@@ -13,6 +13,7 @@ func init() {
 	rootCmd.AddCommand(interviewCmd)
 
 	interviewCmd.Flags().StringP("company", "c", "", "target company")
+	interviewCmd.Flags().StringP("position", "p", "", "target job position")
 	interviewCmd.Flags().StringP("limit", "l", "5", "response query limit")
 	interviewCmd.MarkFlagRequired("company")
 }
