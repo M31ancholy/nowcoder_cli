@@ -121,7 +121,7 @@ func collectCurrentPage(result *string) chromedp.ActionFunc {
 
 func GetInterviews(company, position string, limit int) []PostLink {
 	// ========== 配置 ==========
-	cookieFile := "./cmd/tmp/nowcoder_cookie.json"
+	cookieFile := "/Users/Zhuanz/GolandProjects/nowcoder_cli/cmd/tmp/nowcoder_cookie.json"
 	outputFile := "./cmd/tmp/post_links.json"
 	// ===========================
 
@@ -292,6 +292,54 @@ func GetInterviews(company, position string, limit int) []PostLink {
 		log.Printf("保存文件失败: %v", err)
 	} else {
 		fmt.Printf("\n✅ 结果已保存到 %s\n", outputFile)
+	}
+
+	if len(allPosts) > 0 {
+		fmt.Println("\n============================================")
+		fmt.Println("📖 开始获取帖子详细内容...")
+		fmt.Println("============================================")
+
+		fetchLimit := limit
+		if fetchLimit > len(allPosts) {
+			fetchLimit = len(allPosts)
+		}
+
+		for i := 0; i < fetchLimit; i++ {
+			post := allPosts[i]
+			log.Printf("[%d/%d] 正在获取: %s", i+1, fetchLimit, post.Title)
+
+			err = chromedp.Run(ctx,
+				chromedp.Navigate(post.Href),
+				chromedp.WaitReady("body"),
+				chromedp.Sleep(2*time.Second),
+			)
+			if err != nil {
+				log.Printf("  ❌ 访问帖子失败: %v", err)
+				continue
+			}
+
+			var content string
+			err = chromedp.Run(ctx,
+				chromedp.Evaluate(`
+					(() => {
+						const contentEl = document.querySelector('.post-detail') || 
+							document.querySelector('.article-content') ||
+							document.querySelector('.post-content') ||
+							document.querySelector('[class*="content"]');
+						return contentEl ? contentEl.innerText.trim() : document.body.innerText.trim().substring(0, 2000);
+					})()
+				`, &content),
+			)
+			if err != nil {
+				log.Printf("  ❌ 提取内容失败: %v", err)
+				continue
+			}
+
+			fmt.Printf("\n========== [%d] %s ==========\n", i+1, post.Title)
+			fmt.Printf("🔗 %s\n", post.Href)
+			fmt.Printf("📝 内容:\n%s\n", content)
+			fmt.Println()
+		}
 	}
 
 	time.Sleep(5 * time.Second)
