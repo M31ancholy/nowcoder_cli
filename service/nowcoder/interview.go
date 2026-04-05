@@ -342,6 +342,5 @@ func GetInterviews(company, position string, limit int) []PostLink {
 		}
 	}
 
-	time.Sleep(5 * time.Second)
 	return nil
 }
