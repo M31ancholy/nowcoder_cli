@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
@@ -120,10 +121,11 @@ func collectCurrentPage(result *string) chromedp.ActionFunc {
 }
 
 func GetInterviews(company, position string, limit int) []PostLink {
-	// ========== 配置 ==========
-	cookieFile := "/Users/Zhuanz/GolandProjects/nowcoder_cli/cmd/tmp/nowcoder_cookie.json"
-	outputFile := "./cmd/tmp/post_links.json"
-	// ===========================
+	execPath, _ := os.Executable()
+	execDir := filepath.Dir(execPath)
+
+	cookieFile := filepath.Join(execDir, "nowcoder_cookie.json")
+	outputFile := filepath.Join(execDir, "post_links.json")
 
 	cookies, err := loadCookiesFromFile(cookieFile)
 	if err != nil {
