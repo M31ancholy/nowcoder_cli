@@ -134,7 +134,7 @@ func GetInterviews(company, position string, limit int) []PostLink {
 	log.Printf("共加载 %d 个 Cookie\n", len(cookies))
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", false),
+		chromedp.Flag("headless", true),
 	)
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	defer cancel()
