@@ -1,4 +1,4 @@
-package main
+package nowcoder
 
 import (
 	"context"
@@ -121,8 +121,6 @@ func collectCurrentPage(result *string) chromedp.ActionFunc {
 
 func GetInterviews(company, position string, limit int) []PostLink {
 	// ========== 配置 ==========
-	query := "面经" // 搜索关键词
-	limit := 3    // 遍历几页
 	cookieFile := "./cmd/tmp/nowcoder_cookie.json"
 	outputFile := "./cmd/tmp/post_links.json"
 	// ===========================
