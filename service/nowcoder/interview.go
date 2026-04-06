@@ -124,14 +124,17 @@ func GetInterviews(company, position string, limit int) []PostLink {
 	execPath, _ := os.Executable()
 	execDir := filepath.Dir(execPath)
 
-	cookieFile := filepath.Join(execDir, "nowcoder_cookie.json")
+	cookieFile := os.Getenv("NOWCODER_COOKIE_PATH")
+	if cookieFile == "" {
+		cookieFile = filepath.Join(execDir, "nowcoder_cookie.json")
+	}
 	outputFile := filepath.Join(execDir, "post_links.json")
 
 	cookies, err := loadCookiesFromFile(cookieFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("共加载 %d 个 Cookie\n", len(cookies))
+	// log.Printf("共加载 %d 个 Cookie\n", len(cookies))
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", true),
@@ -162,21 +165,21 @@ func GetInterviews(company, position string, limit int) []PostLink {
 		chromedp.Sleep(3*time.Second),
 	)
 	if err != nil {
-		log.Fatalf("初始化页面失败: %v", err)
+		// log.Fatalf("初始化页面失败: %v", err)
 	}
 
 	var allPosts []PostLink
 	seen := make(map[string]bool) // 用 href 去重
 
 	for page := 1; page <= limit; page++ {
-		log.Printf("========== 正在抓取第 %d / %d 页 ==========", page, limit)
+		// log.Printf("========== 正在抓取第 %d / %d 页 ==========", page, limit)
 
 		// 等待卡片渲染
 		err = chromedp.Run(ctx,
 			chromedp.Sleep(2*time.Second),
 		)
 		if err != nil {
-			log.Printf("第 %d 页等待失败: %v", page, err)
+			// log.Printf("第 %d 页等待失败: %v", page, err)
 			break
 		}
 
@@ -186,13 +189,13 @@ func GetInterviews(company, position string, limit int) []PostLink {
 			collectCurrentPage(&rawJSON),
 		)
 		if err != nil {
-			log.Printf("第 %d 页提取失败: %v", page, err)
+			// log.Printf("第 %d 页提取失败: %v", page, err)
 			break
 		}
 
 		var pagePosts []PostLink
 		if err := json.Unmarshal([]byte(rawJSON), &pagePosts); err != nil {
-			log.Printf("第 %d 页 JSON 解析失败: %v, raw: %s", page, err, rawJSON)
+			// log.Printf("第 %d 页 JSON 解析失败: %v, raw: %s", page, err, rawJSON)
 			break
 		}
 
@@ -210,29 +213,29 @@ func GetInterviews(company, position string, limit int) []PostLink {
 			newCount++
 		}
 
-		log.Printf("第 %d 页: 提取到 %d 条，新增 %d 条（累计 %d 条）",
-			page, len(pagePosts), newCount, len(allPosts))
+		// log.Printf("第 %d 页: 提取到 %d 条，新增 %d 条（累计 %d 条）",
+		// 	page, len(pagePosts), newCount, len(allPosts))
 
 		// 打印本页帖子
-		for i, p := range pagePosts {
-			if seen[p.Href] || p.Href == "" {
-				// 已经统计过的跳过打印
-			}
-			fmt.Printf("  [%d-%02d] %s\n", page, i+1, p.Title)
-			fmt.Printf("          %s\n", p.Href)
-			if p.Desc != "" {
-				desc := p.Desc
-				if len(desc) > 80 {
-					desc = desc[:80] + "..."
-				}
-				fmt.Printf("          %s\n", desc)
-			}
-			fmt.Println()
-		}
+		// for i, p := range pagePosts {
+		// 	if seen[p.Href] || p.Href == "" {
+		// 		// 已经统计过的跳过打印
+		// 	}
+		// 	fmt.Printf("  [%d-%02d] %s\n", page, i+1, p.Title)
+		// 	fmt.Printf("          %s\n", p.Href)
+		// 	if p.Desc != "" {
+		// 		desc := p.Desc
+		// 		if len(desc) > 80 {
+		// 			desc = desc[:80] + "..."
+		// 		}
+		// 		fmt.Printf("          %s\n", desc)
+		// 	}
+		// 	fmt.Println()
+		// }
 
 		// 如果不是最后一页，点击下一页
 		if page < limit {
-			log.Printf("点击下一页...")
+			// log.Printf("点击下一页...")
 
 			// 点击分页组件的 "下一页" 按钮
 			err = chromedp.Run(ctx,
@@ -273,33 +276,33 @@ func GetInterviews(company, position string, limit int) []PostLink {
 				chromedp.Sleep(3*time.Second),
 			)
 			if err != nil {
-				log.Printf("翻页失败: %v", err)
+				// log.Printf("翻页失败: %v", err)
 				break
 			}
 		}
 	}
 
 	// ========== 输出结果 ==========
-	fmt.Println("\n============================================")
-	fmt.Printf("✅ 共抓取 %d 页, 累计 %d 条不重复帖子\n", limit, len(allPosts))
-	fmt.Println("============================================")
+	// fmt.Println("\n============================================")
+	// fmt.Printf("✅ 共抓取 %d 页, 累计 %d 条不重复帖子\n", limit, len(allPosts))
+	// fmt.Println("============================================")
 
-	for i, p := range allPosts {
-		fmt.Printf("[%3d] %s\n      %s\n", i+1, p.Title, p.Href)
-	}
+	// for i, p := range allPosts {
+	// 	fmt.Printf("[%3d] %s\n      %s\n", i+1, p.Title, p.Href)
+	// }
 
 	// 保存到文件
 	output, _ := json.MarshalIndent(allPosts, "", "  ")
 	if err := os.WriteFile(outputFile, output, 0644); err != nil {
-		log.Printf("保存文件失败: %v", err)
+		// log.Printf("保存文件失败: %v", err)
 	} else {
-		fmt.Printf("\n✅ 结果已保存到 %s\n", outputFile)
+		// fmt.Printf("\n✅ 结果已保存到 %s\n", outputFile)
 	}
 
 	if len(allPosts) > 0 {
-		fmt.Println("\n============================================")
-		fmt.Println("📖 开始获取帖子详细内容...")
-		fmt.Println("============================================")
+		// fmt.Println("\n============================================")
+		// fmt.Println("📖 开始获取帖子详细内容...")
+		// fmt.Println("============================================")
 
 		fetchLimit := limit
 		if fetchLimit > len(allPosts) {
@@ -308,7 +311,7 @@ func GetInterviews(company, position string, limit int) []PostLink {
 
 		for i := 0; i < fetchLimit; i++ {
 			post := allPosts[i]
-			log.Printf("[%d/%d] 正在获取: %s", i+1, fetchLimit, post.Title)
+			// log.Printf("[%d/%d] 正在获取: %s", i+1, fetchLimit, post.Title)
 
 			err = chromedp.Run(ctx,
 				chromedp.Navigate(post.Href),
@@ -316,7 +319,7 @@ func GetInterviews(company, position string, limit int) []PostLink {
 				chromedp.Sleep(2*time.Second),
 			)
 			if err != nil {
-				log.Printf("  ❌ 访问帖子失败: %v", err)
+				// log.Printf("  ❌ 访问帖子失败: %v", err)
 				continue
 			}
 
@@ -333,7 +336,7 @@ func GetInterviews(company, position string, limit int) []PostLink {
 				`, &content),
 			)
 			if err != nil {
-				log.Printf("  ❌ 提取内容失败: %v", err)
+				// log.Printf("  ❌ 提取内容失败: %v", err)
 				continue
 			}
 
